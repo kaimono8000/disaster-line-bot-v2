@@ -1,6 +1,6 @@
 import fitz  # PyMuPDF
 
-def split_pdf_to_chunks(pdf_path, chunk_size=500, overlap=50):
+def split_pdf_to_chunks(pdf_path, chunk_size=  2000, overlap=500):
     doc = fitz.open(pdf_path)
     chunks = []
 
