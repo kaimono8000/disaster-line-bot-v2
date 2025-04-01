@@ -1,14 +1,15 @@
 import os
 from flask import Flask, request, abort
 from dotenv import load_dotenv
-from linebot.v3.webhook import WebhookHandler
+from linebot.v3.webhook import WebhookHandler, MessageEvent
 from linebot.v3.messaging import MessagingApi, Configuration, ApiClient
 from linebot.v3.messaging.models import (
-    TextMessage, MessageEvent, TextSendMessage,
+    TextMessage, TextSendMessage,
     QuickReply, QuickReplyButton, MessageAction
 )
 from rag_searcher import RagSearcher
 from openai import OpenAI
+
 
 load_dotenv()
 
