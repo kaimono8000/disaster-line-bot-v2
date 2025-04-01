@@ -29,7 +29,6 @@ def truncate_tokens(text, max_tokens=6000, model="gpt-4"):
     return truncated
 
 def ask_chatgpt_with_context(context, question):
-    # トークンベースで安全に切る
     safe_context = truncate_tokens(context, max_tokens=6000)
 
     messages = [
