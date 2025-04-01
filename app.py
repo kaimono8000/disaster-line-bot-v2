@@ -4,10 +4,17 @@ from dotenv import load_dotenv
 
 from linebot.v3.webhooks import WebhookHandler, MessageEvent, TextMessageContent
 from linebot.v3.messaging import MessagingApi, Configuration, ApiClient
-from linebot.v3.messaging.models import TextMessage, TextSendMessage, QuickReply, QuickReplyButton, MessageAction
+from linebot.v3.messaging.models import (
+    TextMessage,
+    TextSendMessage,
+    QuickReply,
+    QuickReplyButton,
+    MessageAction
+)
 
 from rag_searcher import RagSearcher
 from openai import OpenAI
+
 
 
 
