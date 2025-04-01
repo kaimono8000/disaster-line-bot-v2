@@ -21,17 +21,23 @@ user_states = {}
 
 # ChatGPTへの問い合わせ（文脈つき）
 def ask_chatgpt_with_context(context, question):
+    # トークン量が多すぎるとエラーになるので、contextを短く制限
+    if len(context) > 6000:
+        context = context[:6000] + "\n...（一部省略）"
+
     messages = [
-        {"role": "system", "content": "以下は災害マニュアルの抜粋です。質問に対して正確かつ簡潔に答えてください。"},
+        {"role": "system", "content": "以下は災害マニュアルの一部です。ユーザーの質問に対して、正確かつ簡潔に答えてください。"},
         {"role": "system", "content": f"マニュアル抜粋:\n{context}"},
         {"role": "user", "content": question}
     ]
+
     response = client.chat.completions.create(
         model="gpt-4",
         messages=messages,
         temperature=0.2,
     )
     return response.choices[0].message.content.strip()
+
 
 @app.route("/callback", methods=["POST"])
 def callback():
