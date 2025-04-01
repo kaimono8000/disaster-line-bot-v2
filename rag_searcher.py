@@ -20,13 +20,21 @@ class RagSearcher:
     def _embed(self, text):
         if not text or not text.strip():
             print("⚠️ 空のテキストをスキップしました")
-            return np.zeros(1536, dtype=np.float32)  # text-embedding-ada-002 の出力次元
+            return np.zeros(1536, dtype=np.float32)  # text-embedding-ada-002 の出力サイズ
+
+        # トークン制限（上限：8191 → 安全に6000くらいに）
+        enc = tiktoken.encoding_for_model("text-embedding-ada-002")
+        tokens = enc.encode(text)
+        if len(tokens) > 6000:
+            text = enc.decode(tokens[:6000])
+            print("✂️ テキストが長すぎたのでカットしました")
 
         response = client.embeddings.create(
             model="text-embedding-ada-002",
             input=[text]
         )
         return np.array(response.data[0].embedding, dtype=np.float32)
+
 
     def _build_index(self, json_path):
         with open(json_path, "r", encoding="utf-8") as f:
