@@ -20,14 +20,21 @@ searcher = RagSearcher()
 user_states = {}
 
 # ChatGPTへの問い合わせ（文脈つき）
+import tiktoken
+
+def truncate_tokens(text, max_tokens=6000, model="gpt-4"):
+    enc = tiktoken.encoding_for_model(model)
+    tokens = enc.encode(text)
+    truncated = enc.decode(tokens[:max_tokens])
+    return truncated
+
 def ask_chatgpt_with_context(context, question):
-    # トークン量が多すぎるとエラーになるので、contextを短く制限
-    if len(context) > 6000:
-        context = context[:6000] + "\n...（一部省略）"
+    # トークンベースで安全に切る
+    safe_context = truncate_tokens(context, max_tokens=6000)
 
     messages = [
         {"role": "system", "content": "以下は災害マニュアルの一部です。ユーザーの質問に対して、正確かつ簡潔に答えてください。"},
-        {"role": "system", "content": f"マニュアル抜粋:\n{context}"},
+        {"role": "system", "content": f"マニュアル抜粋:\n{safe_context}"},
         {"role": "user", "content": question}
     ]
 
