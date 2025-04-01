@@ -2,22 +2,19 @@ import os
 from flask import Flask, request, abort
 from dotenv import load_dotenv
 
-# Webhook（イベント）
-from linebot.v3.webhook import WebhookHandler, MessageEvent
+from linebot.v3.webhooks import WebhookHandler, MessageEvent, TextMessageContent
+from linebot.v3.messaging import Configuration, ApiClient, MessagingApi
+from linebot.v3.messaging.models import (
+    TextMessage,
+    TextSendMessage,
+    QuickReply,
+    QuickReplyButton,
+    MessageAction
+)
 
-# メッセージ送信API
-from linebot.v3.messaging import MessagingApi, Configuration, ApiClient
-
-# モデルたち（適切な場所から個別に）
-from linebot.v3.messaging.models.text_message import TextMessage
-from linebot.v3.messaging.models.text_send_message import TextSendMessage
-from linebot.v3.messaging.models.quick_reply import QuickReply
-from linebot.v3.messaging.models.quick_reply_button import QuickReplyButton
-from linebot.v3.messaging.models.message_action import MessageAction
-
-# その他
 from rag_searcher import RagSearcher
 from openai import OpenAI
+
 
 
 
