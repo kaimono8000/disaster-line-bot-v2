@@ -1,6 +1,7 @@
 # rag_searcher.py
 
 import os
+import tiktoken
 import json
 import numpy as np
 import faiss
