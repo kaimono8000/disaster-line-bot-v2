@@ -8,22 +8,23 @@ from openai import OpenAI
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+token_encoder = tiktoken.encoding_for_model("text-embedding-ada-002")
 
 class RagSearcher:
-    def __init__(self, json_path="chunks.json", max_tokens=3000):
+    def __init__(self, json_path="chunks.json"):
         self.index = None
         self.chunks = []
-        self.chunk_metadatas = []
         self.embeddings = []
-        self.tokenizer = tiktoken.encoding_for_model("text-embedding-ada-002")
-        self.max_tokens = max_tokens
         self._build_index(json_path)
 
     def _embed(self, text):
         if not text or not text.strip():
             print("⚠️ 空のテキストをスキップしました")
             return np.zeros(1536, dtype=np.float32)
-
+        # トークン数制限（長すぎるチャンクはカット）
+        tokens = token_encoder.encode(text)
+        if len(tokens) > 8192:
+            text = token_encoder.decode(tokens[:8192])
         response = client.embeddings.create(
             model="text-embedding-ada-002",
             input=[text]
@@ -32,42 +33,37 @@ class RagSearcher:
 
     def _build_index(self, json_path):
         with open(json_path, "r", encoding="utf-8") as f:
-            raw_chunks = json.load(f)
-
-        self.chunks = [chunk["text"] for chunk in raw_chunks]
-        self.chunk_metadatas = raw_chunks
-        self.embeddings = [self._embed(text) for text in self.chunks]
-
+            self.chunks = json.load(f)
+        texts = [chunk["text"] for chunk in self.chunks]
+        self.embeddings = [self._embed(text) for text in texts]
         dim = len(self.embeddings[0])
         self.index = faiss.IndexFlatL2(dim)
         self.index.add(np.array(self.embeddings))
 
-    def search_filtered(self, query, role=None, location=None, category=None, top_k=5):
+    def search(self, query, top_k=3):
         query_vec = self._embed(query).reshape(1, -1)
-        distances, indices = self.index.search(query_vec, top_k * 5)  # ゆとりをもって検索
+        distances, indices = self.index.search(query_vec, top_k)
+        return [self.chunks[i]["text"] for i in indices[0]]
 
-        filtered = []
-        total_tokens = 0
+    def search_filtered(self, query, role=None, location=None, top_k=3):
+        filtered_chunks = []
 
-        for i in indices[0]:
-            chunk = self.chunk_metadatas[i]
-
-            # フィルタ：ゆるめ（小文字化＋部分一致）
-            if role and chunk.get("role") and role.lower() not in chunk["role"].lower():
+        for chunk in self.chunks:
+            if role and "role" in chunk and role not in chunk["role"]:
                 continue
-            if location and chunk.get("location") and location.lower() not in chunk["location"].lower():
+            if location and "location" in chunk and location not in chunk["location"]:
                 continue
-            if category and chunk.get("category") and category.lower() not in chunk["category"].lower():
-                continue
+            filtered_chunks.append(chunk)
 
-            # トークン数で制限（context最大8192なので余裕持って3000くらい）
-            token_count = len(self.tokenizer.encode(chunk["text"]))
-            if total_tokens + token_count > self.max_tokens:
-                break
+        if not filtered_chunks:
+            print("⚠️ 該当チャンクがありません")
+            return ["（該当する情報がマニュアル内に見つかりませんでした）"]
 
-            total_tokens += token_count
-            filtered.append(chunk["text"])
-
-            print("🔍 ヒット:", chunk.get("role"), chunk.get("location"), chunk["text"][:40])
-
-        return filtered
+        texts = [chunk["text"] for chunk in filtered_chunks]
+        embeddings = [self._embed(text) for text in texts]
+        dim = len(embeddings[0])
+        index = faiss.IndexFlatL2(dim)
+        index.add(np.array(embeddings))
+        query_vec = self._embed(query).reshape(1, -1)
+        distances, indices = index.search(query_vec, min(top_k, len(embeddings)))
+        return [texts[i] for i in indices[0]]
